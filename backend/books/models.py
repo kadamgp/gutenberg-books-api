@@ -152,7 +152,7 @@ class Book(models.Model):
         managed = False
 
     def __str__(self):
-        return self.title or str(self.gutenberg_id)
+        return f"Book(id={self.id}, title={self.title})"
 
 
 # -------------- BookFormat Model --------------
