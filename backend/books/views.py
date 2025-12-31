@@ -4,6 +4,7 @@ from .models import Book
 from .serializers import BookSerializer
 from rest_framework.response import Response
 from django.db.models import F
+from .pagination import BookPagination
 
 # Create your views here.
 
@@ -11,7 +12,7 @@ from django.db.models import F
 class BookListApiView(APIView):
     """
     GET /api/books/
-    returns a list of books order by popularity descending
+    Returns a paginated list of books order by popularity
     """
 
     def get(self, request):
@@ -19,13 +20,11 @@ class BookListApiView(APIView):
         # Below querey is same as SELECT * FROM books_book ORDER BY download_count DESC NULLS LAST
 
         books = Book.objects.all().order_by(
-            F('download_count').desc(nulls_last=True))[:5]
+            F('download_count').desc(nulls_last=True))
 
-        serializer = BookSerializer(books, many=True)
+        paginator = BookPagination()
+        paginated_books = paginator.paginate_queryset(books, request)
 
-        return Response(
-            {
-                "count": books.count(),
-                "results": serializer.data,
-            }
-        )
+        serializer = BookSerializer(paginated_books, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
