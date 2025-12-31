@@ -12,18 +12,39 @@ from .pagination import BookPagination
 class BookListApiView(APIView):
     """
     GET /api/books/
-    Returns a paginated list of books order by popularity
+    Supports filtering, ordering, and pagination
     """
 
     def get(self, request):
 
-        # Below querey is same as SELECT * FROM books_book ORDER BY download_count DESC NULLS LAST
+        # select * from books_book
 
-        books = Book.objects.all().order_by(
-            F('download_count').desc(nulls_last=True))
+        books = Book.objects.all()
 
+        # Filtering
+        # gutenberg_id filter
+        gutenberg_ids = request.GET.getlist("gutenberg_id")
+
+        if gutenberg_ids:
+            # Convert ['1', '2', '3'] → [1, 2, 3]
+            try:
+                ids = [int(i) for i in gutenberg_ids]
+                books = books.filter(gutenberg_id__in=ids)
+            except ValueError:
+                return Response(
+                    {"error": "gutenberg_id must be integers"},
+                    status=400
+                )
+                # Remove duplicated books due to joins
+        queryset = books.distinct()
+
+        # Order by Popularity
+        queryset = queryset.order_by(
+            F('download_count').desc(nulls_last=True)
+        )
+        # Pagination
         paginator = BookPagination()
-        paginated_books = paginator.paginate_queryset(books, request)
+        paginated_books = paginator.paginate_queryset(queryset, request)
 
         serializer = BookSerializer(paginated_books, many=True)
 
